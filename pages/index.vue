@@ -10,6 +10,9 @@
         <NuxtLink to="/upload">Upload</NuxtLink>
         <NuxtLink to="/about">About</NuxtLink>
       </nav>
+      <div class="image-container">
+        <img src="/public/logo.jpeg" alt="PixelBubble Logo" class="centered-image">
+      </div>
       <main class="main-content">
         <p>Welcome to PixelBubble, your community hub for sharing and exploring amazing 3D and pixel art creations from artists around the globe.</p>
         <!-- Future content like featured artworks or recent uploads will go here -->
@@ -92,5 +95,23 @@ const currentYear = new Date().getFullYear();
     padding: 1rem;
     text-align: center;
   }
-  </style>
   
+  .image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 0;
+  }
+
+  .centered-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .centered-image:hover {
+    transform: scale(1.05);
+  }
+  </style>
