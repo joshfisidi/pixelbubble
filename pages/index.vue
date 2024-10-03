@@ -52,6 +52,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useHead } from '#imports';
 import { useNuxtApp } from '#app';
+import UploadPopup from '~/components/UploadPopup.vue';
 
 useHead({
   title: 'PixelBubble - Share Your 3D and Pixel Art',
@@ -162,6 +163,11 @@ const handleUpload = async () => {
   images.value.push(newImage);
   closeUploadPopup();
   await fetchImages(); // Refresh the image list
+};
+
+const handleUploadSuccess = (newImage) => {
+  images.value.unshift(newImage); // Add the new image to the beginning of the array
+  closeUploadPopup();
 };
 </script>
 

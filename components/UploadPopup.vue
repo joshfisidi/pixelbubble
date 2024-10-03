@@ -17,13 +17,13 @@
 
 <script setup>
 import { ref, watch } from 'vue';
-import { supabase } from '~/utils/supabaseClient';
+import { useNuxtApp } from '#app';
+import { v4 as uuidv4 } from 'uuid';
+
+const { $supabase } = useNuxtApp();
 
 const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true
-  }
+  isOpen: Boolean,
 });
 
 const emit = defineEmits(['close', 'upload-success']);
@@ -43,10 +43,12 @@ const closePopup = () => {
 const handleUpload = async () => {
   if (!file.value) return;
 
-  const fileName = `${Date.now()}_${file.value.name}`;
-  const { data: uploadData, error: uploadError } = await supabase.storage
+  const fileExtension = file.value.name.split('.').pop();
+  const fileName = `${uuidv4()}.${fileExtension}`;
+  
+  const { data: uploadData, error: uploadError } = await $supabase.storage
     .from('images')
-    .upload(fileName, file.value);
+    .upload(`public/${fileName}`, file.value);
 
   if (uploadError) {
     console.error('Error uploading file:', uploadError);
@@ -54,24 +56,31 @@ const handleUpload = async () => {
     return;
   }
 
-  const { data: urlData, error: urlError } = supabase.storage
+  const { data: urlData } = $supabase.storage
     .from('images')
-    .getPublicUrl(fileName);
+    .getPublicUrl(`public/${fileName}`);
 
-  if (urlError) {
-    console.error('Error getting public URL:', urlError);
-    alert('Failed to retrieve the image URL. Please try again.');
-    return;
-  }
+  const publicUrl = urlData.publicUrl;
 
-  const publicUrl = urlData.publicURL;
-
-  emit('upload-success', {
-    id: uploadData.Key || Date.now(), // Use the file key or timestamp as ID
+  const newImage = {
+    id: fileName.split('.')[0], // UUID without extension
     name: title.value,
     description: description.value,
     url: publicUrl,
-  });
+  };
+
+  // Insert metadata into the image_metadata table
+  const { error: metadataError } = await $supabase
+    .from('image_metadata')
+    .insert(newImage);
+
+  if (metadataError) {
+    console.error('Error inserting metadata:', metadataError);
+    alert('Failed to save image metadata. Please try again.');
+    return;
+  }
+
+  emit('upload-success', newImage);
 
   // Reset form
   file.value = null;

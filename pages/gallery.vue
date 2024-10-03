@@ -1,11 +1,13 @@
 <template>
   <div>
+    <h1 class="text-2xl font-bold mb-4">Image Gallery</h1>
     <div v-if="isLoading">Loading images...</div>
-    <div v-if="fetchError">{{ fetchError }}</div>
+    <div v-if="fetchError" class="text-red-500">{{ fetchError }}</div>
     <div v-if="images.length" class="image-grid">
-      <div v-for="image in images" :key="image.name" class="image-item">
+      <div v-for="image in images" :key="image.id" class="image-item">
         <img :src="image.url" :alt="image.name" class="gallery-image" />
-        <p>{{ image.name }}</p>
+        <p class="font-bold mt-2">{{ image.name }}</p>
+        <p class="text-sm text-gray-600">{{ image.description }}</p>
       </div>
     </div>
     <div v-if="!isLoading && !fetchError && !images.length">No images found.</div>
@@ -26,54 +28,28 @@ const fetchImages = async () => {
   fetchError.value = null;
 
   try {
-    console.log('Fetching images from storage...');
-    const { data: files, error } = await $supabase.storage
-      .from('images')
-      .list('public');
+    console.log('Fetching image metadata from database...');
+    
+    const { data: metadata, error } = await $supabase
+      .from('image_metadata')
+      .select('*')
+      .order('uploaded_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching files:', error);
-      throw error;
+      console.error('Error fetching metadata:', error);
+      fetchError.value = 'Error fetching image metadata.';
+      return;
     }
 
-    console.log('Fetched files:', files);
+    console.log('Fetched image metadata:', metadata);
 
-    if (!files || files.length === 0) {
-      console.log('No files found in the public folder');
+    if (!metadata || metadata.length === 0) {
+      console.log('No image metadata found.');
       images.value = [];
       return;
     }
 
-    const newImages = await Promise.all(files.map(async (file) => {
-      try {
-        console.log('Processing file:', file.name);
-        const { data: urlData } = $supabase.storage
-          .from('images')
-          .getPublicUrl(`public/${file.name}`);
-
-        if (!urlData || !urlData.publicUrl) {
-          console.error('Failed to get public URL for:', file.name);
-          return null;
-        }
-
-        console.log('Image URL:', urlData.publicUrl);
-
-        return {
-          name: file.name,
-          url: urlData.publicUrl,
-        };
-      } catch (err) {
-        console.error('Error processing image:', file.name, err);
-        return null;
-      }
-    }));
-
-    console.log('Processed images:', newImages);
-    images.value = newImages.filter(img => img !== null);
-    
-    if (images.value.length === 0) {
-      console.log('No valid images found after processing');
-    }
+    images.value = metadata;
   } catch (err) {
     console.error('Unexpected error in fetchImages:', err);
     fetchError.value = 'Failed to load images. Please try again later.';
